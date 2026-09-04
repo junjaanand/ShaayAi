@@ -5,8 +5,8 @@ import {
   Area,
   DeepgramSTT,
   ExpiresIn,
-  MiniMaxTTS,
   OpenAI,
+  OpenAITTS,
 } from 'agora-agents';
 import { ClientStartRequest, AgentResponse } from '@/types/conversation';
 import { DEFAULT_AGENT_UID } from '@/lib/agora';
@@ -176,9 +176,9 @@ export async function POST(request: NextRequest) {
         }),
       )
       .withTts(
-        new MiniMaxTTS({
-          model: 'speech_2_6_turbo',
-          voiceId: 'English_captivating_female1', // calm, professional female voice
+        new OpenAITTS({
+          model: 'tts-1',
+          voice: 'nova', // Agora-managed multilingual voice with native Hindi/English fluency
         }),
       );
 
