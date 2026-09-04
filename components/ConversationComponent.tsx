@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import AgoraRTC, {
   useRTCClient,
   useLocalMicrophoneTrack,
@@ -31,18 +31,28 @@ import {
   normalizeTimestampMs,
   normalizeTranscript,
 } from '@/lib/conversation';
+import {
+  createInitialState,
+  parseAgentResponse,
+  extractDisplayText,
+  shouldEscalate,
+  type ConversationState,
+} from '@/lib/conversation-state';
+import { buildEscalationPackage } from '@/lib/escalation';
 import { MicrophoneSelector } from './MicrophoneSelector';
 import {
   getConversationIssueSeverity,
   type ConnectionIssue,
 } from './ConversationErrorCard';
 import { ConnectionStatusPanel } from './ConnectionStatusPanel';
-import { QuickstartConversationLayout } from './QuickstartConversationLayout';
+import { SahaayConversationLayout } from './SahaayConversationLayout';
 import {
   QuickstartPipelineMetrics,
   type QuickstartAgentMetric,
 } from './QuickstartPipelineMetrics';
 import { QuickstartTranscriptPanel } from './QuickstartTranscriptPanel';
+import { SlotFillingCard } from './SlotFillingCard';
+import { EscalationPanel } from './EscalationPanel';
 import type { ConversationComponentProps } from '@/types/conversation';
 
 // Cap the displayed issues list to avoid overwhelming the UI during a cascade of errors.
@@ -117,6 +127,14 @@ export default function ConversationComponent({
   const [connectionIssues, setConnectionIssues] = useState<ConnectionIssue[]>(
     [],
   );
+
+  // SahaayAI: Conversation state tracking for slot filling, confidence, and escalation
+  const [conversationState, setConversationState] = useState<ConversationState>(
+    createInitialState(),
+  );
+  const [escalationTicketId, setEscalationTicketId] = useState<string | null>(null);
+  const escalationTriggeredRef = useRef(false);
+
   const addConnectionIssue = useCallback((issue: ConnectionIssue) => {
     setConnectionIssues((prev) => {
       const isDuplicate = prev.some(
@@ -130,6 +148,97 @@ export default function ConversationComponent({
       return [issue, ...prev].slice(0, MAX_CONNECTION_ISSUES);
     });
   }, []);
+
+  // SahaayAI: Process transcript updates to track conversation state
+  useEffect(() => {
+    if (rawTranscript.length === 0) return;
+
+    // Get the latest agent message to parse for state markers
+    const agentMessages = rawTranscript.filter(
+      (t) => t.uid !== '0' && t.uid !== String(client.uid),
+    );
+    if (agentMessages.length === 0) return;
+
+    const latestAgent = agentMessages[agentMessages.length - 1];
+    if (latestAgent?.text) {
+      setConversationState((prev) => {
+        const textStr = typeof latestAgent.text === 'string' ? latestAgent.text : '';
+        const updated = parseAgentResponse(textStr, prev);
+        // Count user turns
+        const userTurns = rawTranscript.filter(
+          (t) => t.uid === '0' || t.uid === String(client.uid),
+        );
+        return { ...updated, turnCount: userTurns.length };
+      });
+    }
+  }, [rawTranscript, client.uid]);
+
+  // SahaayAI: Auto-escalation when confidence is critically low
+  useEffect(() => {
+    if (escalationTriggeredRef.current) return;
+    if (shouldEscalate(conversationState)) {
+      escalationTriggeredRef.current = true;
+      setConversationState((prev) => ({ ...prev, phase: 'ESCALATING' as const }));
+
+      // Create escalation ticket
+      const transcriptTexts = rawTranscript
+        .map((t) => `${t.uid === '0' || t.uid === String(client.uid) ? 'Caller' : 'Agent'}: ${extractDisplayText(typeof t.text === 'string' ? t.text : '')}`)
+        .filter((t) => t.length > 8);
+
+      const escalationPkg = buildEscalationPackage(conversationState, transcriptTexts);
+
+      fetch('/api/create-ticket', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          escalation_package: escalationPkg,
+          channel_name: agoraData.channel,
+          priority: conversationState.safetyBoundaryHit ? 'CRITICAL' : 'HIGH',
+        }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          setEscalationTicketId(data.ticket_id ?? null);
+          setConversationState((prev) => ({ ...prev, phase: 'ESCALATED' as const }));
+        })
+        .catch((err) => console.error('Failed to create escalation ticket:', err));
+    }
+  }, [conversationState, rawTranscript, client.uid, agoraData.channel]);
+
+  // SahaayAI: Manual escalation handler
+  const handleManualEscalate = useCallback(() => {
+    if (escalationTriggeredRef.current) return;
+    escalationTriggeredRef.current = true;
+
+    const updatedState = {
+      ...conversationState,
+      phase: 'ESCALATING' as const,
+      escalationReason: 'Caller requested transfer to human agent',
+    };
+    setConversationState(updatedState);
+
+    const transcriptTexts = rawTranscript
+      .map((t) => `${t.uid === '0' || t.uid === String(client.uid) ? 'Caller' : 'Agent'}: ${extractDisplayText(typeof t.text === 'string' ? t.text : '')}`)
+      .filter((t) => t.length > 8);
+
+    const escalationPkg = buildEscalationPackage(updatedState, transcriptTexts);
+
+    fetch('/api/create-ticket', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        escalation_package: escalationPkg,
+        channel_name: agoraData.channel,
+        priority: 'HIGH',
+      }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        setEscalationTicketId(data.ticket_id ?? null);
+        setConversationState((prev) => ({ ...prev, phase: 'ESCALATED' as const }));
+      })
+      .catch((err) => console.error('Failed to create escalation ticket:', err));
+  }, [conversationState, rawTranscript, client.uid, agoraData.channel]);
 
   // Auto-open details panel as soon as a new issue is recorded.
   useEffect(() => {
@@ -362,7 +471,13 @@ export default function ConversationComponent({
   // so the transcript panel renders user messages on the correct side.
   // Also normalize punctuation spacing for display when upstream text arrives compacted.
   const transcript = useMemo(() => {
-    return normalizeTranscript(rawTranscript, String(client.uid));
+    const normalized = normalizeTranscript(rawTranscript, String(client.uid));
+    // SahaayAI: Strip any remaining bracket markers from transcript display.
+    // Safety net in case the LLM emits [SLOT:...] etc. despite prompt instructions.
+    return normalized.map((item) => ({
+      ...item,
+      text: typeof item.text === 'string' ? extractDisplayText(item.text) : item.text,
+    }));
   }, [rawTranscript, client.uid]);
 
   // Completed (END + INTERRUPTED) messages shown as history.
@@ -468,8 +583,19 @@ export default function ConversationComponent({
     onEndConversation();
   }, [onEndConversation]);
 
+  // SahaayAI: Build the escalation package for display
+  const escalationPackage = useMemo(() => {
+    if (conversationState.phase !== 'ESCALATING' && conversationState.phase !== 'ESCALATED') {
+      return null;
+    }
+    const transcriptTexts = rawTranscript
+      .map((t) => `${t.uid === '0' || t.uid === String(client.uid) ? 'Caller' : 'Agent'}: ${extractDisplayText(typeof t.text === 'string' ? t.text : '')}`)
+      .filter((t) => t.length > 8);
+    return buildEscalationPackage(conversationState, transcriptTexts);
+  }, [conversationState, rawTranscript, client.uid]);
+
   return (
-    <QuickstartConversationLayout
+    <SahaayConversationLayout
       statusPanel={
         <ConnectionStatusPanel
           connectionState={connectionState}
@@ -522,7 +648,28 @@ export default function ConversationComponent({
           <MicrophoneSelector localMicrophoneTrack={localMicrophoneTrack} />
         </div>
       }
+      slotFillingCard={
+        <SlotFillingCard
+          slots={conversationState.slots}
+          phase={conversationState.phase}
+        />
+      }
+      escalationPanel={
+        escalationPackage ? (
+          <EscalationPanel
+            escalationReason={escalationPackage.escalationReason}
+            conversationSummary={escalationPackage.conversationSummary}
+            confirmedDetails={escalationPackage.confirmedDetails}
+            uncertainDetails={escalationPackage.uncertainDetails}
+            missingDetails={escalationPackage.missingDetails}
+            ticketId={escalationTicketId}
+            callerLanguageContext={escalationPackage.callerLanguageContext}
+          />
+        ) : null
+      }
+      conversationState={conversationState}
       onEndConversation={handleEndConversation}
+      onManualEscalate={handleManualEscalate}
     />
   );
 }

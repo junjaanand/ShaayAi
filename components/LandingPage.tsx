@@ -12,7 +12,7 @@ import type {
 } from '../types/conversation';
 import { ErrorBoundary } from './ErrorBoundary';
 import { LoadingSkeleton } from './LoadingSkeleton';
-import { QuickstartPreCallCard } from './QuickstartPreCallCard';
+import { SahaayPreCallCard } from './SahaayPreCallCard';
 
 // Dynamically import the ConversationComponent with ssr disabled
 const ConversationComponent = dynamic(() => import('./ConversationComponent'), {
@@ -203,6 +203,28 @@ export default function LandingPage() {
 
   return (
     <div className="relative flex h-dvh min-h-screen flex-col overflow-hidden bg-background text-foreground">
+      {!showConversation && (
+        <header className="z-20 flex shrink-0 items-center justify-between border-b border-border/60 bg-background/80 px-6 py-3 backdrop-blur-sm">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-lg bg-gradient-to-r from-blue-600 to-teal-500 bg-clip-text text-transparent">
+              EchoSphere
+            </span>
+            <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-medium">
+              Team OASIS
+            </span>
+          </div>
+          <a
+            href="/agent-dashboard"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg border border-border/80 hover:border-border transition-colors"
+          >
+            <span>Support Agent Dashboard</span>
+            <span className="text-blue-500">↗</span>
+          </a>
+        </header>
+      )}
+
       {/* Hero shell: either shows the pre-call CTA or swaps in the live conversation experience. */}
       <div
         className={`flex min-h-0 flex-1 flex-col ${
@@ -219,7 +241,7 @@ export default function LandingPage() {
           }`}
         >
           {!showConversation ? (
-            <QuickstartPreCallCard
+            <SahaayPreCallCard
               isLoading={isLoading}
               error={error}
               onStartConversation={handleStartConversation}

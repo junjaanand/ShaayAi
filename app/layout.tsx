@@ -8,9 +8,9 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'Talk to your voice agent | Agora',
+  title: 'SahaayAI — Multilingual Voice AI Support | Team OASIS',
   description:
-    "Next.js quickstart: real-time voice agent with live transcript, streaming audio, and low latency from Agora's Conversational AI Engine—API routes in one repo.",
+    'Real-time multilingual voice AI assistance with code-switching, slot-filling, low-confidence detection, and explainable human escalation powered by Agora Conversational AI.',
   icons: {
     icon: [
       { url: '/favicon.ico' },

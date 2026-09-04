@@ -13,8 +13,9 @@
     "start": "next start",
     "lint": "eslint .",
     "verify:api": "node --import tsx scripts/verify-api-contracts.ts",
+    "test:features": "node --env-file=.env.local --import tsx scripts/test-all-features.ts",
     "typecheck": "tsc --noEmit",
-    "verify": "pnpm run doctor && pnpm run lint && pnpm run typecheck && pnpm run verify:api && pnpm run build"
+    "verify": "pnpm run doctor && pnpm run lint && pnpm run typecheck && pnpm run verify:api && pnpm run test:features && pnpm run build"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.39",

@@ -11,35 +11,74 @@ import {
 import { ClientStartRequest, AgentResponse } from '@/types/conversation';
 import { DEFAULT_AGENT_UID } from '@/lib/agora';
 
-// System prompt that defines the agent's personality and behavior.
-// Swap this out to change what the agent talks about.
-const ADA_PROMPT = `You are **Ada**, an agentic developer advocate from **Agora**. You help developers understand and build with Agora's Conversational AI platform.
+// SahaayAI: Multilingual customer assistance voice agent
+// IMPORTANT: This prompt must NOT contain any structured markers like [SLOT:...], [PHASE:...], etc.
+// because Agora sends the full LLM output directly to TTS — any markers in the text will be
+// spoken aloud as gibberish. State extraction is done client-side via natural language parsing.
+const SAHAAY_PROMPT = `You are SahaayAI, a calm, patient, and empathetic multilingual customer assistance voice agent. You help callers with public information, customer support, and non-clinical queries.
 
-# What Agora Actually Is
-Agora is a real-time communications company. The product you represent is the **Agora Conversational AI Engine** — it lets developers add voice AI agents to any app by connecting ASR, LLM, and TTS into a real-time pipeline over Agora's SD-RTN (Software Defined Real-Time Network). Key facts:
-- The product is called the **Conversational AI Engine** (not "Chorus", not "Harmony", or any other name you might invent)
-- It runs a full ASR → LLM → TTS pipeline with sub-500ms latency
-- It supports Deepgram, Microsoft, and others for ASR; OpenAI, Anthropic, and others for LLM; ElevenLabs, Microsoft, and others for TTS
-- Agora's SD-RTN is its global real-time network infrastructure — not "SDRTN"
-- MCP in this context means **Model Context Protocol** (Anthropic's open standard for connecting AI models to tools/data), not "multi-channel processing"
-- Agora does not have a product called Chorus, Harmony, or any similar name — do not invent product names
+CRITICAL RULE: You are a VOICE agent. Everything you say will be spoken aloud by text-to-speech. NEVER include any tags, brackets, labels, markers, JSON, code, or metadata in your responses. Only output natural spoken sentences.
 
-# Honesty Rule
-If you don't know a specific fact about Agora, say so plainly and suggest checking docs.agora.io. Never invent product names, feature names, or capabilities.
+# Language Rules
+- You understand Hindi, English, and Hinglish (mixed Hindi-English).
+- Match the caller's language. If they speak Hindi, reply in simple Hindi. If English, reply in English. If mixed, use Hinglish.
+- IMPORTANT: Use simple, commonly spoken Hindi words. Avoid complex or literary Hindi vocabulary. Think of how a friendly call center agent in Delhi would speak.
+- Keep Hindi sentences short and clear. Use common Hinglish phrases like "aapka naam", "kya problem hai", "main samajh rahi hoon".
+- When speaking Hindi, prefer romanized everyday words over formal language.
 
-# Persona & Tone
-- Friendly, technically credible, concise. You're a peer who builds things, not a support agent.
-- Plain English. No marketing fluff.
+# Your Role and Boundaries
+You are a TRIAGE and INFORMATION COLLECTION agent. You:
+- Collect essential information about the caller's issue
+- Confirm critical details by repeating them back naturally
+- Transfer to a human agent when needed
 
-# Core Behavior Guidelines
-- **Default to brief**: This is a voice conversation. Keep most replies to 1–2 sentences. Only go longer if the user explicitly asks for detail or the answer genuinely requires it.
-- **Never list or enumerate**: No bullet points, no numbered steps. Say the single most important thing.
-- **Clarify before answering**: For anything complex, ask one focused question first.
-- **Ask at most one question per turn**: Never stack questions.
-- **Guide, don't lecture**: Unlock the next step, not everything at once.`;
+You must NEVER:
+- Give medical diagnosis or health advice. Say: "Main medical advice nahi de sakti. Please apne doctor se baat karein."
+- Give legal advice. Politely decline.
+- Give financial advice. Politely decline.
+- If someone mentions an emergency like fire, accident, or crime, say: "Yeh emergency hai. Please abhi 112 dial karein."
+- Present uncertain information as confirmed fact.
+- Make promises, commitments, or guarantees.
 
-// First thing the agent says when a user joins the channel.
-const GREETING = `Hi there! I'm Ada, your virtual assistant from Agora. How can I help?`;
+# Conversation Flow
+Follow this natural flow:
+
+1. GREET the caller warmly. Let them explain their problem.
+2. LISTEN carefully. Do NOT interrupt their first explanation.
+3. COLLECT information one question at a time. Ask about:
+   - Their name
+   - What type of issue (billing, service, complaint, information, other)
+   - Specific details about the issue
+   - Their phone number for follow-up
+   - Their location or city (if relevant)
+   - How urgent this is for them
+4. CONFIRM by naturally repeating back what you heard: "Toh aapka naam Varun hai, aur aapko billing mein double charge ka issue hai, Delhi se. Kya yeh sahi hai?"
+5. If they confirm, summarize and let them know what happens next.
+6. If they correct something, update and re-confirm.
+7. If you cannot understand after trying 2-3 times, or they ask for a human, say: "Main aapko ek human agent se connect kar rahi hoon taaki aapki problem achhe se solve ho sake."
+
+# Voice Conversation Rules
+- Keep responses to 1-2 SHORT sentences. This is voice, not text.
+- NEVER use bullet points, numbered lists, markdown, brackets, or any formatting.
+- NEVER output anything that is not meant to be spoken aloud.
+- Ask ONE question at a time, then wait for the answer.
+- Use a warm, calm tone. The caller may be stressed or frustrated.
+- If they are upset, acknowledge it first: "Main samajh sakti hoon yeh kitna frustrating hai."
+- Use natural fillers: "Accha", "Ji", "I understand", "Okay"
+- If you cannot hear clearly: "Sorry, mujhe thoda clearly nahi sunai diya. Kya aap dobara bol sakte hain?"
+
+# Example Natural Conversation
+Caller: "Haan mera bill bahut zyada aaya hai, I was charged twice."
+Agent: "Main samajh rahi hoon, double charge ho gaya hai aapka. Yeh bahut frustrating hota hai. Aapka naam bata sakte hain please?"
+
+Caller: "Varun hai mera naam"
+Agent: "Dhanyavaad Varun ji. Kya aap bata sakte hain yeh bill kis service ka hai?"
+
+Caller: "Electricity bill hai, Delhi se bol raha hoon"
+Agent: "Okay Varun ji. Toh aapko Delhi mein electricity bill mein double charge ka issue hai. Kya aap apna contact number bata sakte hain taaki hum follow up kar sakein?"`;
+
+// Bilingual greeting — short and clear for TTS
+const GREETING = `Namaste! Main SahaayAI hoon, aapki virtual assistant. Aap Hindi ya English mein baat kar sakte hain. Kaise madad kar sakti hoon? Hello! I am SahaayAI, your virtual assistant. You can speak in Hindi or English. How can I help you today?`;
 
 // agentUid identifies the AI in the RTC channel and shares its default with the client.
 const agentUid = String(DEFAULT_AGENT_UID);
@@ -72,49 +111,45 @@ export async function POST(request: NextRequest) {
     // --- 2. Build and start the agent ---
 
     // AgoraClient authenticates API calls to the Agora Conversational AI service.
-    // area: change to Area.EU or Area.AP for European or Asia-Pacific deployments.
     const client = new AgoraClient({
       area: Area.US,
       appId,
       appCertificate,
     });
 
-    // Pipeline: Deepgram (reseller) STT → OpenAI (reseller) LLM → MiniMax (reseller) TTS.
-    // Omit vendor API keys for supported models — AgentKit infers reseller presets on start (see Agora Console / billing).
+    // Pipeline: Deepgram (multilingual) STT → OpenAI LLM → MiniMax TTS
+    // Configured for multilingual customer assistance with Hindi/English support.
     const agent = new Agent({
       client,
-      instructions: ADA_PROMPT,
+      instructions: SAHAAY_PROMPT,
       greeting: GREETING,
-      failureMessage: 'Please wait a moment.',
+      failureMessage: 'Ek moment please, main connect ho rahi hoon. Please wait a moment.',
       maxHistory: 50,
-      // VAD controls how the agent detects the start and end of a user's turn.
+      // VAD tuned for Hindi/English conversations:
+      // - Lower speech threshold for softer-spoken callers
+      // - Longer silence duration to accommodate Hindi speech patterns
+      // - Fast interrupt detection so the caller can cut in when needed
       turnDetection: {
         config: {
-          speech_threshold: 0.5,
+          speech_threshold: 0.45,
           start_of_speech: {
             mode: 'vad',
             vad_config: {
-              interrupt_duration_ms: 160, // ms of speech before interruption triggers
-              prefix_padding_ms: 300, // audio captured before speech is detected
+              interrupt_duration_ms: 160, // fast interruption detection
+              prefix_padding_ms: 350, // slightly more buffer for code-switched speech
             },
           },
           end_of_speech: {
             mode: 'vad',
             vad_config: {
-              silence_duration_ms: 480, // ms of silence before turn ends
+              silence_duration_ms: 700, // longer pause tolerance for Hindi/Hinglish
             },
           },
         },
       },
-      // RTM is required for transcript events in the browser client.
-      // enable_tools is required for MCP tool invocation.
+      // RTM for transcript events + tools for MCP/agentic actions
       advancedFeatures: { enable_rtm: true, enable_tools: true },
-      // Required for browser RTM events:
-      // - data_channel: 'rtm' enables RTM delivery path for state/metrics/errors
-      // - enable_error_message emits AGENT_ERROR payloads
-      // - enable_metrics emits AGENT_METRICS latency payloads
       parameters: {
-        // web client → ultra-low-latency chorus profile
         audio_scenario: 'chorus',
         data_channel: 'rtm',
         enable_error_message: true,
@@ -124,52 +159,27 @@ export async function POST(request: NextRequest) {
       .withStt(
         new DeepgramSTT({
           model: 'nova-3',
-          language: 'en',
+          language: 'multi', // Multilingual: auto-detects Hindi, English, and code-switching
         }),
-        // BYOK: uncomment the following block and set NEXT_DEEPGRAM_API_KEY
-        // new DeepgramSTT({
-        //   apiKey: requireEnv('NEXT_DEEPGRAM_API_KEY'),
-        //   model: 'nova-3',
-        //   language: 'en',
-        // }),
       )
       .withLlm(
         new OpenAI({
           model: 'gpt-4o-mini',
           greetingMessage: GREETING,
-          failureMessage: 'Please wait a moment.',
-          maxHistory: 15,
+          failureMessage: 'Ek moment please. Please wait a moment.',
+          maxHistory: 30, // longer history for support conversations
           params: {
-            max_tokens: 1024,
-            temperature: 0.7,
-            top_p: 0.95,
+            max_tokens: 512, // shorter responses for cleaner TTS
+            temperature: 0.4, // slightly higher for more natural speech
+            top_p: 0.9,
           },
         }),
-        // BYOK: uncomment the following block and set NEXT_LLM_API_KEY and NEXT_LLM_URL
-        // new OpenAI({
-        //   apiKey: requireEnv('NEXT_LLM_API_KEY'),
-        //   url: requireEnv('NEXT_LLM_URL'),
-        //   model: 'gpt-4o-mini',
-        //   greetingMessage: GREETING,
-        //   failureMessage: 'Please wait a moment.',
-        //   maxHistory: 15,
-        //   maxTokens: 1024,
-        //   temperature: 0.7,
-        //   topP: 0.95,
-        // }),
       )
       .withTts(
         new MiniMaxTTS({
           model: 'speech_2_6_turbo',
-          voiceId: 'English_captivating_female1',
+          voiceId: 'English_captivating_female1', // calm, professional female voice
         }),
-        // BYOK — ElevenLabs (set NEXT_ELEVENLABS_API_KEY; optional NEXT_ELEVENLABS_VOICE_ID)
-        // new (await import('agora-agents')).ElevenLabsTTS({
-        //   key: requireEnv('NEXT_ELEVENLABS_API_KEY'),
-        //   modelId: 'eleven_flash_v2_5',
-        //   voiceId: process.env.NEXT_ELEVENLABS_VOICE_ID ?? 'pNInz6obpgDQGcFmaJgB',
-        //   sampleRate: 24000,
-        // }),
       );
 
     // remoteUids restricts the agent to only process audio from this user
@@ -177,9 +187,9 @@ export async function POST(request: NextRequest) {
       channel: channel_name,
       agentUid,
       remoteUids: [requester_id],
-      idleTimeout: 30,
+      idleTimeout: 120, // 2 min idle timeout for support calls (callers may pause)
       expiresIn: ExpiresIn.hours(1),
-      debug: false, // enable debug to show restful API calls in the console
+      debug: false,
     });
 
     const agentId = await session.start();
