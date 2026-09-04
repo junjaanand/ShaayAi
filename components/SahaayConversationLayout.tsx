@@ -33,8 +33,8 @@ export function SahaayConversationLayout({
   onManualEscalate,
 }: SahaayConversationLayoutProps) {
   const isEscalated =
-    conversationState.phase === 'ESCALATING' ||
-    conversationState.phase === 'ESCALATED';
+    conversationState?.phase === 'ESCALATING' ||
+    conversationState?.phase === 'ESCALATED';
 
   return (
     <div className="flex min-h-0 flex-1 flex-col text-left">
@@ -50,15 +50,15 @@ export function SahaayConversationLayout({
                 SahaayAI
               </span>
               <LanguageBadge
-                detectedLanguages={conversationState.detectedLanguages}
-                currentLanguage={conversationState.currentLanguage}
+                detectedLanguages={conversationState?.detectedLanguages || []}
+                currentLanguage={conversationState?.currentLanguage || 'en'}
               />
             </div>
             <div className="flex items-center gap-2">
               {pipelineMetrics}
               <ConfidenceMeter
-                confidence={conversationState.overallConfidence}
-                phase={conversationState.phase}
+                confidence={conversationState?.overallConfidence ?? 1.0}
+                phase={conversationState?.phase || 'GREETING'}
               />
             </div>
           </div>

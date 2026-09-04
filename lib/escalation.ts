@@ -13,23 +13,25 @@ export interface EscalationPackage {
   ticketId?: string;
 }
 
-export function buildEscalationPackage(state: ConversationState, transcriptText: string[]): EscalationPackage {
-  const recentTranscript = transcriptText.slice(-10).join('\n');
+export function buildEscalationPackage(state: ConversationState, transcriptText: string[] = []): EscalationPackage {
+  const safeText = Array.isArray(transcriptText) ? transcriptText : [];
+  const recentTranscript = safeText.slice(-10).join('\n');
+  const detectedLangs = state?.detectedLanguages || [];
   
-  let languageContext = `Current language: ${state.currentLanguage}`;
-  if (state.detectedLanguages.length > 1) {
-    languageContext = `Started in ${state.detectedLanguages[0]}, switched to ${state.currentLanguage}. Detected languages: ${state.detectedLanguages.join(', ')}. Code switches: ${state.codeSwitchCount}`;
+  let languageContext = `Current language: ${state?.currentLanguage || 'en'}`;
+  if (detectedLangs.length > 1) {
+    languageContext = `Started in ${detectedLangs[0]}, switched to ${state.currentLanguage}. Detected languages: ${detectedLangs.join(', ')}. Code switches: ${state?.codeSwitchCount || 0}`;
   }
 
   return {
     conversationSummary: recentTranscript,
     callerLanguageContext: languageContext,
-    confirmedDetails: getConfirmedSlots(state),
-    uncertainDetails: getUncertainSlots(state),
-    missingDetails: getMissingSlots(state),
-    questionsAsked: state.questionsAsked,
-    escalationReason: state.escalationReason || 'Automatic escalation based on state rules.',
-    safetyBoundaryHit: state.safetyBoundaryHit,
+    confirmedDetails: state ? getConfirmedSlots(state) : {},
+    uncertainDetails: state ? getUncertainSlots(state) : {},
+    missingDetails: state ? getMissingSlots(state) : [],
+    questionsAsked: state?.questionsAsked || [],
+    escalationReason: state?.escalationReason || 'Automatic escalation based on state rules.',
+    safetyBoundaryHit: Boolean(state?.safetyBoundaryHit),
     timestamp: new Date().toISOString(),
   };
 }

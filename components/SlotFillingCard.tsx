@@ -26,9 +26,10 @@ const formatLabel = (key: string) => {
 };
 
 export function SlotFillingCard({ slots, phase }: SlotFillingCardProps) {
-  const slotEntries = Object.entries(slots);
+  const safeSlots = slots || {};
+  const slotEntries = Object.entries(safeSlots);
   const totalSlots = slotEntries.length;
-  const filledSlots = slotEntries.filter(([_, slot]) => slot.value !== null).length;
+  const filledSlots = slotEntries.filter(([_, slot]) => slot?.value !== null && slot?.value !== undefined).length;
   const progressPercent = totalSlots > 0 ? (filledSlots / totalSlots) * 100 : 0;
 
   return (
@@ -54,9 +55,9 @@ export function SlotFillingCard({ slots, phase }: SlotFillingCardProps) {
         {slotEntries.map(([key, slot]) => (
           <div key={key} className="flex items-center justify-between py-1 border-b border-gray-100 dark:border-gray-700 last:border-0">
             <div className="flex items-center space-x-2">
-              {slot.confirmed ? (
+              {slot?.confirmed ? (
                 <CheckCircle2 size={16} className="text-green-500" />
-              ) : slot.value ? (
+              ) : slot?.value ? (
                 <AlertCircle size={16} className="text-yellow-500" />
               ) : (
                 <Circle size={16} className="text-gray-300 dark:text-gray-600" />
@@ -64,7 +65,7 @@ export function SlotFillingCard({ slots, phase }: SlotFillingCardProps) {
               <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{formatLabel(key)}</span>
             </div>
             <span className="text-sm text-gray-600 dark:text-gray-400 truncate max-w-[50%]">
-              {slot.value || '—'}
+              {slot?.value || '—'}
             </span>
           </div>
         ))}

@@ -15,7 +15,7 @@ const LANG_MAP: Record<string, string> = {
 };
 
 export function LanguageBadge({ detectedLanguages }: LanguageBadgeProps) {
-  if (!detectedLanguages || detectedLanguages.length === 0) return null;
+  if (!detectedLanguages || !Array.isArray(detectedLanguages) || detectedLanguages.length === 0) return null;
 
   const displayNames = detectedLanguages.map(code => LANG_MAP[code] || code).join(', ');
 

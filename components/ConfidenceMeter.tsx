@@ -8,12 +8,13 @@ export interface ConfidenceMeterProps {
 }
 
 export function ConfidenceMeter({ confidence, phase }: ConfidenceMeterProps) {
-  const percentage = Math.round(confidence * 100);
+  const safeConfidence = typeof confidence === 'number' && !isNaN(confidence) ? confidence : 1.0;
+  const percentage = Math.round(safeConfidence * 100);
   
   let colorClass = 'bg-red-500';
-  if (confidence > 0.7) {
+  if (safeConfidence > 0.7) {
     colorClass = 'bg-green-500';
-  } else if (confidence >= 0.4) {
+  } else if (safeConfidence >= 0.4) {
     colorClass = 'bg-yellow-500';
   }
 
