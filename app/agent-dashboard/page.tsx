@@ -1,3 +1,5 @@
+'use client';
+
 import { SupportAgentDashboard } from '@/components/SupportAgentView';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';

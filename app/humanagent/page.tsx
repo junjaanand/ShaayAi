@@ -1,3 +1,5 @@
+'use client';
+
 import { SupportAgentDashboard } from '@/components/SupportAgentView';
 
 export default function HumanAgentPage() {
