@@ -15,6 +15,9 @@ export interface Ticket {
     safetyBoundaryHit: boolean;
   };
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  linearUrl?: string;
+  linearIssueKey?: string;
+  slackAlertSent?: boolean;
 }
 
 const ticketStore = new Map<string, Ticket>();

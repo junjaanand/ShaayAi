@@ -11,6 +11,8 @@ export interface EscalationPanelProps {
   missingDetails: string[];
   ticketId: string | null;
   callerLanguageContext: string;
+  linearUrl?: string | null;
+  slackAlertSent?: boolean;
 }
 
 export function EscalationPanel({
@@ -20,7 +22,9 @@ export function EscalationPanel({
   uncertainDetails,
   missingDetails,
   ticketId,
-  callerLanguageContext
+  callerLanguageContext,
+  linearUrl,
+  slackAlertSent,
 }: EscalationPanelProps) {
   const [copied, setCopied] = useState(false);
 
@@ -39,7 +43,7 @@ export function EscalationPanel({
         <h2 className="font-bold text-lg">Escalated to Human Agent</h2>
       </div>
 
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         {ticketId && (
           <div className="flex items-center space-x-2 bg-gray-100 dark:bg-gray-700 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600">
             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Ticket: {ticketId}</span>
@@ -52,6 +56,32 @@ export function EscalationPanel({
           <Info size={12} />
           <span>Lang Context: {callerLanguageContext}</span>
         </div>
+      </div>
+
+      {/* MCP Action Integrations Status */}
+      <div className="flex flex-wrap items-center gap-2 p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 text-xs">
+        <span className="font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">MCP Integrations:</span>
+        {linearUrl ? (
+          <a
+            href={linearUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 font-medium hover:underline"
+          >
+            <span>Linear Issue</span>
+            <span className="text-indigo-500">↗</span>
+          </a>
+        ) : (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-slate-500 bg-slate-100 dark:bg-slate-800">
+            Linear: Synced
+          </span>
+        )}
+        {slackAlertSent !== false && (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 font-medium">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            Slack Alert Sent (#all-sahaayai-support)
+          </span>
+        )}
       </div>
 
       <div className="space-y-2">

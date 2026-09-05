@@ -133,6 +133,8 @@ export default function ConversationComponent({
     createInitialState(),
   );
   const [escalationTicketId, setEscalationTicketId] = useState<string | null>(null);
+  const [escalationLinearUrl, setEscalationLinearUrl] = useState<string | null>(null);
+  const [escalationSlackSent, setEscalationSlackSent] = useState<boolean>(false);
   const escalationTriggeredRef = useRef(false);
 
   const addConnectionIssue = useCallback((issue: ConnectionIssue) => {
@@ -199,6 +201,8 @@ export default function ConversationComponent({
         .then((res) => res.json())
         .then((data) => {
           setEscalationTicketId(data.ticket_id ?? null);
+          setEscalationLinearUrl(data.linear_url ?? null);
+          setEscalationSlackSent(Boolean(data.slack_alert_sent));
           setConversationState((prev) => ({ ...prev, phase: 'ESCALATED' as const }));
         })
         .catch((err) => console.error('Failed to create escalation ticket:', err));
@@ -235,6 +239,8 @@ export default function ConversationComponent({
       .then((res) => res.json())
       .then((data) => {
         setEscalationTicketId(data.ticket_id ?? null);
+        setEscalationLinearUrl(data.linear_url ?? null);
+        setEscalationSlackSent(Boolean(data.slack_alert_sent));
         setConversationState((prev) => ({ ...prev, phase: 'ESCALATED' as const }));
       })
       .catch((err) => console.error('Failed to create escalation ticket:', err));
@@ -281,7 +287,22 @@ export default function ConversationComponent({
   // synchronously before the timeout, so only the real second mount's timer fires.
   // Do NOT pass `isEnabled` — that ties track lifetime to mute state and breaks the Web Audio
   // graph inside MicButtonWithVisualizer. Mute uses track.setEnabled() only.
-  const { localMicrophoneTrack } = useLocalMicrophoneTrack(isReady);
+  const { localMicrophoneTrack, error: micError } =
+    useLocalMicrophoneTrack(isReady);
+
+  useEffect(() => {
+    if (micError) {
+      addConnectionIssue({
+        id: `mic-error-${Date.now()}`,
+        source: 'agent',
+        agentUserId: agentUID,
+        code: (micError as { code?: string })?.code || 'DEVICE_NOT_FOUND',
+        message:
+          'No microphone detected. Please plug in a microphone or allow microphone permissions in browser settings.',
+        timestamp: Date.now(),
+      });
+    }
+  }, [micError, agentUID, addConnectionIssue]);
 
   // ENABLE_AUDIO_PTS is a module-level SDK parameter (not on the client instance).
   // It must be set before publishing audio for transcript timing to be accurate.
@@ -664,6 +685,8 @@ export default function ConversationComponent({
             missingDetails={escalationPackage.missingDetails}
             ticketId={escalationTicketId}
             callerLanguageContext={escalationPackage.callerLanguageContext}
+            linearUrl={escalationLinearUrl}
+            slackAlertSent={escalationSlackSent}
           />
         ) : null
       }

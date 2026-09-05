@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Headphones, Inbox, ChevronDown, ChevronUp, AlertCircle, Clock, Search, RefreshCw, Activity } from 'lucide-react';
+import { Headphones, Inbox, ChevronDown, ChevronUp, AlertCircle, Clock, Search, RefreshCw, Activity, ExternalLink } from 'lucide-react';
 
 interface Ticket {
   id: string;
@@ -16,6 +16,9 @@ interface Ticket {
   missingDetails: string[];
   callerLanguageContext: string;
   questionsAsked?: string[];
+  linearUrl?: string | null;
+  linearIssueKey?: string | null;
+  slackAlertSent?: boolean;
 }
 
 const PRIORITY_COLORS = {
@@ -64,6 +67,9 @@ export function SupportAgentView() {
               missingDetails: (pkg.missingDetails || t.missingDetails || []) as string[],
               callerLanguageContext: String(pkg.callerLanguageContext || t.callerLanguageContext || 'Multilingual (Hindi/English)'),
               questionsAsked: (pkg.questionsAsked || t.questionsAsked || []) as string[],
+              linearUrl: (t.linearUrl as string) || (pkg.linearUrl as string) || null,
+              linearIssueKey: (t.linearIssueKey as string) || (pkg.linearIssueKey as string) || null,
+              slackAlertSent: Boolean(t.slackAlertSent || pkg.slackAlertSent),
             };
           });
           setTickets(normalized);
@@ -183,6 +189,16 @@ export function SupportAgentView() {
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium border ${STATUS_COLORS[ticket.status]}`}>
                         {ticket.status}
                       </span>
+                      {ticket.linearUrl && (
+                        <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800 flex items-center gap-1">
+                          Linear {ticket.linearIssueKey || 'Issue'}
+                        </span>
+                      )}
+                      {ticket.slackAlertSent && (
+                        <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 flex items-center gap-1">
+                          Slack Sent
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center text-sm text-gray-600 dark:text-gray-400 line-clamp-1">
                       <AlertCircle size={14} className="mr-1.5 shrink-0 text-amber-500" />
@@ -202,6 +218,31 @@ export function SupportAgentView() {
 
                 {isExpanded && (
                   <div className="border-t border-gray-100 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800/50 space-y-4">
+                    {/* MCP Action Integrations Status */}
+                    {(ticket.linearUrl || ticket.slackAlertSent) && (
+                      <div className="flex flex-wrap items-center gap-2 p-2.5 rounded-lg bg-slate-100/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800 text-xs">
+                        <span className="font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">MCP Integrations:</span>
+                        {ticket.linearUrl && (
+                          <a
+                            href={ticket.linearUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 font-medium hover:underline"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <span>Linear {ticket.linearIssueKey ? `(${ticket.linearIssueKey})` : 'Issue'}</span>
+                            <ExternalLink size={12} />
+                          </a>
+                        )}
+                        {ticket.slackAlertSent && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 font-medium">
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                            Slack Alert Sent (#all-sahaayai-support)
+                          </span>
+                        )}
+                      </div>
+                    )}
+
                     <div className="flex items-center space-x-2">
                       <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">Language:</span>
                       <span className="text-sm bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 px-2 py-0.5 rounded">{ticket.callerLanguageContext}</span>

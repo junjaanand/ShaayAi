@@ -66,6 +66,16 @@ export function SahaayConversationLayout({
 
         <div className="flex flex-wrap items-center gap-2 md:justify-end md:pr-1">
           {statusPanel}
+          <a
+            href="/humanagent"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 h-9 rounded-md border border-slate-200/90 bg-white/90 px-3 text-xs font-medium text-slate-700 shadow-sm hover:border-slate-300 hover:text-slate-950 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-200 dark:hover:text-white transition-colors"
+            title="Open Human Agent Dashboard in a new tab"
+          >
+            <span>Agent Dashboard</span>
+            <ExternalLink className="h-3 w-3 text-cyan-500" />
+          </a>
           {!isEscalated && (
             <Button
               variant="outline"

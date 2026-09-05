@@ -66,30 +66,31 @@ const HINGLISH_WORDS = /\b(aapka|naam|kya|hai|hoon|mein|se|kar|sakti|bata|sakte|
 function detectLanguage(text: string): string {
   const hasDevanagari = HINDI_PATTERNS.test(text);
   const hasHinglish = HINGLISH_WORDS.test(text);
-  const hasEnglish = /\b(your|name|issue|help|understand|confirm|please|what|how|can|will|the|is|are)\b/i.test(text);
+  const hasEnglish = /\b(your|name|issue|help|understand|confirm|please|what|how|can|will|the|is|are|service|bill)\b/i.test(text);
 
+  if (hasDevanagari && hasEnglish) return 'hi-en';
   if (hasDevanagari) return 'hi';
   if (hasHinglish && hasEnglish) return 'hi-en';
-  if (hasHinglish) return 'hi-en';
+  if (hasHinglish) return 'hi';
   return 'en';
 }
 
-// Name extraction: look for patterns like "your name is X", "naam X hai", "Dhanyavaad X ji"
+// Name extraction: look for patterns like "your name is X", "naam X hai", "Dhanyavaad X ji", "पुष्टि के लिए, आपका नाम X है"
 function extractName(text: string): string | null {
   const patterns = [
-    /(?:your name is|naam)\s+(\w+)/i,
-    /(?:dhanyavaad|thank you)\s+(\w+)\s*ji/i,
-    /(?:okay|accha|toh)\s+(\w+)\s*ji/i,
-    /(\w+)\s*ji,?\s*(?:aapko|aapka|your|main)/i,
-    /(?:confirm|confirmed).*?naam\s+(\w+)/i,
-    /(?:naam)\s+(\w+)\s+hai/i,
+    /(?:your name is|name is|naam)\s+([A-Za-z\u0900-\u097F]+)/i,
+    /(?:dhanyavaad|thank you|धन्यवाद)\s+([A-Za-z\u0900-\u097F]+)\s*ji/i,
+    /(?:okay|accha|toh|जी)\s+([A-Za-z\u0900-\u097F]+)\s*ji/i,
+    /([A-Za-z\u0900-\u097F]+)\s*ji,?\s*(?:aapko|aapka|your|main|आपको|आपका)/i,
+    /(?:confirm|confirmed|पुष्टि).*?नाम\s+([A-Za-z\u0900-\u097F]+)/i,
+    /(?:नाम|naam)\s+([A-Za-z\u0900-\u097F]+)\s+(?:hai|है)/i,
   ];
   for (const pattern of patterns) {
     const match = text.match(pattern);
     if (match?.[1]) {
       const name = match[1];
       // Filter out common false positives
-      if (!['main', 'aapka', 'kya', 'yeh', 'toh', 'aur', 'ek', 'hai', 'se', 'ki', 'ka'].includes(name.toLowerCase())) {
+      if (!['main', 'aapka', 'kya', 'yeh', 'toh', 'aur', 'ek', 'hai', 'se', 'ki', 'ka', 'जी', 'हाँ', 'है', 'क्या', 'आपका', 'तो'].includes(name.toLowerCase())) {
         return name;
       }
     }
@@ -100,10 +101,10 @@ function extractName(text: string): string | null {
 // Issue category extraction
 function extractIssueCategory(text: string): string | null {
   const lower = text.toLowerCase();
-  if (/\b(bill|billing|charge|payment|invoice|paisa|paise|amount|rupe)\b/i.test(lower)) return 'billing';
-  if (/\b(service|seva|connection|network|signal|internet|wifi|broadband)\b/i.test(lower)) return 'service';
-  if (/\b(complaint|shikayat|problem|issue|dikkat|pareshan)\b/i.test(lower)) return 'complaint';
-  if (/\b(information|jaankari|enquiry|inquiry|puchna|pata)\b/i.test(lower)) return 'information';
+  if (/\b(bill|billing|charge|payment|invoice|paisa|paise|amount|rupe)\b/i.test(lower) || /(बिल|बिलिंग|चार्ज|भुगतान|राशि|पैसे)/.test(text)) return 'billing';
+  if (/\b(service|seva|connection|network|signal|internet|wifi|broadband)\b/i.test(lower) || /(सेवा|कनेक्शन|नेटवर्क|सिग्नल|इंटरनेट|वाईफाई)/.test(text)) return 'service';
+  if (/\b(complaint|shikayat|problem|issue|dikkat|pareshan)\b/i.test(lower) || /(शिकायत|समस्या|दिक्कत|परेशानी)/.test(text)) return 'complaint';
+  if (/\b(information|jaankari|enquiry|inquiry|puchna|pata)\b/i.test(lower) || /(जानकारी|पूछताछ)/.test(text)) return 'information';
   return null;
 }
 
@@ -114,7 +115,7 @@ function extractPhone(text: string): string | null {
 }
 
 // Location extraction
-const INDIAN_CITIES = /\b(Delhi|Mumbai|Bangalore|Bengaluru|Chennai|Kolkata|Hyderabad|Pune|Ahmedabad|Jaipur|Lucknow|Kanpur|Nagpur|Indore|Thane|Bhopal|Visakhapatnam|Patna|Vadodara|Ghaziabad|Ludhiana|Agra|Nashik|Faridabad|Meerut|Rajkot|Varanasi|Srinagar|Aurangabad|Dhanbad|Amritsar|Noida|Gurgaon|Gurugram|Chandigarh|Ranchi|Coimbatore|Kochi|Trivandrum|Dehradun)\b/i;
+const INDIAN_CITIES = /\b(Delhi|Mumbai|Bangalore|Bengaluru|Chennai|Kolkata|Hyderabad|Pune|Ahmedabad|Jaipur|Lucknow|Kanpur|Nagpur|Indore|Thane|Bhopal|Visakhapatnam|Patna|Vadodara|Ghaziabad|Ludhiana|Agra|Nashik|Faridabad|Meerut|Rajkot|Varanasi|Srinagar|Aurangabad|Dhanbad|Amritsar|Noida|Gurgaon|Gurugram|Chandigarh|Ranchi|Coimbatore|Kochi|Trivandrum|Dehradun|दिल्ली|मुंबई|बैंगलोर|चेन्नई|कोलकाता|हैदराबाद|पुणे|अहमदाबाद|जयपुर|लखनऊ|कानपुर|नागपुर|इंदौर|भोपाल|पटना|नोएडा|गुड़गांव|चंडीगढ़)\b/i;
 
 function extractLocation(text: string): string | null {
   const match = text.match(INDIAN_CITIES);
@@ -124,27 +125,38 @@ function extractLocation(text: string): string | null {
 // Urgency extraction
 function extractUrgency(text: string): string | null {
   const lower = text.toLowerCase();
-  if (/\b(emergency|urgent|turant|abhi|jaldi|critical|serious|immediately)\b/.test(lower)) return 'high';
-  if (/\b(important|zaruri|jaruri|jald|soon)\b/.test(lower)) return 'medium';
-  if (/\b(whenever|jab bhi|no rush|koi jaldi nahi)\b/.test(lower)) return 'low';
+  if (/\b(emergency|urgent|turant|abhi|jaldi|critical|serious|immediately)\b/.test(lower) || /(इमरजेंसी|तुरंत|जल्दी|अति आवश्यक)/.test(text)) return 'high';
+  if (/\b(important|zaruri|jaruri|jald|soon)\b/.test(lower) || /(ज़रूरी|जरूरी|शीघ्र)/.test(text)) return 'medium';
+  if (/\b(whenever|jab bhi|no rush|koi jaldi nahi)\b/.test(lower) || /(कोई जल्दी नहीं|जब भी)/.test(text)) return 'low';
   return null;
 }
 
 // Detect if agent is in confirmation mode
 function isConfirming(text: string): boolean {
-  return /\b(confirm|sahi hai|correct|verify|is this right|kya yeh sahi|let me confirm|toh aapka)\b/i.test(text);
+  return /\b(confirm|sahi hai|correct|verify|is this right|kya yeh sahi|let me confirm|toh aapka)\b/i.test(text) ||
+    /(पुष्टि|क्या यह सही है|सही है|तो आपका नाम)/.test(text);
 }
 
-// Detect escalation language
+// Detect escalation language - strictly require explicit human transfer intent
 function detectEscalation(text: string): string | null {
   const lower = text.toLowerCase();
-  if (/\b(human agent|insaan|person|kisi se baat|connect kar|transfer kar|handover)\b/.test(lower)) {
+  if (
+    /\b(transfer to human|transfer you to a human|talk to a human|speak with a human|transfer to an agent|transfer to representative|customer care executive|customer care representative)\b/i.test(lower) ||
+    /\b(human agent se connect|human agent se baat|insaan se baat karwao|kisi representative se baat)\b/i.test(lower) ||
+    /(सीनियर कस्टमर केयर प्रतिनिधि से कनेक्ट|ह्यूमन एजेंट से कनेक्ट|प्रतिनिधि से बात)/.test(text)
+  ) {
     return 'Transferring to human agent for better assistance';
   }
-  if (/\b(medical advice nahi|doctor se|emergency hai|112 dial)\b/.test(lower)) {
+  if (
+    /\b(cannot provide medical advice|medical advice nahi|consult a doctor|doctor se consult|emergency.*112)\b/i.test(lower) ||
+    /(मेडिकल सलाह नहीं दे सकती|डॉक्टर से संपर्क|इमरजेंसी है.*112 डायल)/.test(text)
+  ) {
     return 'Safety boundary: medical/emergency query detected';
   }
-  if (/\b(legal advice|financial advice|lawyer|advocate|ca se)\b/.test(lower)) {
+  if (
+    /\b(cannot provide legal advice|legal advice nahi|cannot provide financial advice|financial advice nahi)\b/i.test(lower) ||
+    /(कानूनी सलाह नहीं दे सकती|वित्तीय सलाह नहीं दे सकती)/.test(text)
+  ) {
     return 'Safety boundary: legal/financial query detected';
   }
   return null;
@@ -152,7 +164,11 @@ function detectEscalation(text: string): string | null {
 
 // Detect safety boundary hit
 function detectSafetyBoundary(text: string): boolean {
-  return /\b(medical advice nahi|doctor se consult|emergency hai|112 dial|legal advice nahi|financial advice nahi)\b/i.test(text);
+  const lower = text.toLowerCase();
+  return (
+    /\b(cannot provide medical advice|medical advice nahi|consult a doctor|doctor se consult|emergency.*112|cannot provide legal advice|legal advice nahi|cannot provide financial advice|financial advice nahi)\b/i.test(lower) ||
+    /(मेडिकल सलाह नहीं दे सकती|डॉक्टर से संपर्क|इमरजेंसी है.*112 डायल|कानूनी सलाह नहीं दे सकती|वित्तीय सलाह नहीं दे सकती)/.test(text)
+  );
 }
 
 /**
