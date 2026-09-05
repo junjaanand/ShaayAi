@@ -202,7 +202,7 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="relative flex h-dvh min-h-screen flex-col overflow-hidden bg-background text-foreground">
+    <div className="app-shell relative flex h-dvh min-h-screen flex-col overflow-hidden text-foreground">
       {!showConversation && (
         <header className="z-20 flex shrink-0 items-center justify-between border-b border-border/60 bg-background/80 px-6 py-3 backdrop-blur-sm">
           <div className="flex items-center gap-2">
@@ -297,7 +297,7 @@ export default function LandingPage() {
               width={86}
               height={24}
               priority
-              className="h-6 w-auto hover:opacity-80 transition-opacity translate-y-1"
+              className="h-auto w-[86px] translate-y-1 transition-opacity hover:opacity-80"
             />
             <span className="sr-only">Agora</span>
           </a>

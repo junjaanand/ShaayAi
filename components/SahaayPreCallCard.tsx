@@ -11,37 +11,42 @@ export interface SahaayPreCallCardProps {
 
 export function SahaayPreCallCard({ onStartConversation, isLoading, error }: SahaayPreCallCardProps) {
   return (
-    <div className="w-full max-w-lg mx-auto bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-8 flex flex-col items-center text-center space-y-6">
-      <div className="flex flex-col items-center space-y-2">
-        <div className="bg-blue-100 text-blue-600 p-4 rounded-full">
-          <Headphones size={48} strokeWidth={1.5} />
+    <div className="relative mx-auto flex w-full max-w-xl flex-col items-center overflow-hidden rounded-lg border border-slate-200/80 bg-white/90 p-6 text-center shadow-[0_24px_80px_-32px_rgba(15,23,42,0.45)] backdrop-blur sm:p-10 dark:border-slate-700/70 dark:bg-slate-900/90">
+      <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-cyan-500 via-blue-500 to-emerald-400" />
+
+      <div className="flex flex-col items-center space-y-4">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-950 text-cyan-300 shadow-lg shadow-cyan-950/20 dark:bg-cyan-400 dark:text-slate-950">
+          <Headphones size={30} strokeWidth={1.8} />
         </div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">SahaayAI</h1>
-        <p className="text-lg font-medium text-teal-600 dark:text-teal-400">Your Multilingual AI Support Assistant</p>
-        <p className="text-sm text-gray-500 dark:text-gray-400">Speak in Hindi, English, or both — I understand</p>
+        <div className="space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-600 dark:text-cyan-300">Team OASIS support desk</p>
+          <h1 className="text-4xl font-semibold tracking-tight text-slate-950 dark:text-white">SahaayAI</h1>
+          <p className="text-base font-medium text-slate-700 dark:text-slate-200">A calm, multilingual voice assistant</p>
+          <p className="mx-auto max-w-sm text-sm leading-6 text-slate-500 dark:text-slate-400">Get help in Hindi, English, or a natural mix of both. Start a private voice session when you&apos;re ready.</p>
+        </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 w-full">
-        <div className="flex items-center justify-center space-x-2 bg-gray-50 dark:bg-gray-800 p-2 rounded-lg text-sm text-gray-700 dark:text-gray-300 border border-gray-100 dark:border-gray-700">
+      <div className="mt-8 grid w-full grid-cols-2 gap-2.5 sm:gap-3">
+        <div className="flex items-center justify-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-2 py-2.5 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-300">
           <Globe size={16} className="text-blue-500" />
           <span>Multilingual</span>
         </div>
-        <div className="flex items-center justify-center space-x-2 bg-gray-50 dark:bg-gray-800 p-2 rounded-lg text-sm text-gray-700 dark:text-gray-300 border border-gray-100 dark:border-gray-700">
-          <Zap size={16} className="text-yellow-500" />
+        <div className="flex items-center justify-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-2 py-2.5 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-300">
+          <Zap size={16} className="text-amber-500" />
           <span>Real-time</span>
         </div>
-        <div className="flex items-center justify-center space-x-2 bg-gray-50 dark:bg-gray-800 p-2 rounded-lg text-sm text-gray-700 dark:text-gray-300 border border-gray-100 dark:border-gray-700">
-          <Shield size={16} className="text-green-500" />
+        <div className="flex items-center justify-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-2 py-2.5 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-300">
+          <Shield size={16} className="text-emerald-500" />
           <span>Safe & Private</span>
         </div>
-        <div className="flex items-center justify-center space-x-2 bg-gray-50 dark:bg-gray-800 p-2 rounded-lg text-sm text-gray-700 dark:text-gray-300 border border-gray-100 dark:border-gray-700">
-          <User size={16} className="text-teal-500" />
+        <div className="flex items-center justify-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-2 py-2.5 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-300">
+          <User size={16} className="text-cyan-500" />
           <span>Human Backup</span>
         </div>
       </div>
 
       {error && (
-        <div className="w-full p-3 rounded-lg bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 text-sm">
+        <div role="alert" className="mt-5 w-full rounded-md border border-red-200 bg-red-50 p-3 text-left text-sm text-red-600 dark:border-red-900 dark:bg-red-950/50 dark:text-red-400">
           {error}
         </div>
       )}
@@ -49,7 +54,7 @@ export function SahaayPreCallCard({ onStartConversation, isLoading, error }: Sah
       <button
         onClick={onStartConversation}
         disabled={isLoading}
-        className="w-full flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white py-4 px-6 rounded-xl font-semibold transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+        className="mt-6 flex w-full items-center justify-center gap-2 rounded-md bg-slate-950 px-6 py-4 font-semibold text-white shadow-lg shadow-slate-950/15 transition duration-200 hover:-translate-y-0.5 hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 dark:bg-cyan-400 dark:text-slate-950 dark:hover:bg-cyan-300"
       >
         {isLoading ? (
           <>
@@ -67,7 +72,7 @@ export function SahaayPreCallCard({ onStartConversation, isLoading, error }: Sah
         )}
       </button>
 
-      <p className="text-xs text-gray-400 max-w-sm">
+      <p className="mt-5 max-w-sm text-xs leading-5 text-slate-400 dark:text-slate-500">
         This AI assistant cannot provide medical, legal, or emergency advice. For emergencies, call 112.
       </p>
     </div>

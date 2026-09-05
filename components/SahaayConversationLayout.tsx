@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
-import { PhoneOff, ExternalLink } from 'lucide-react';
+import { PhoneOff, ExternalLink, Radio } from 'lucide-react';
 import { ConfidenceMeter } from '@/components/ConfidenceMeter';
 import { LanguageBadge } from '@/components/LanguageBadge';
 import type { ConversationState } from '@/lib/conversation-state';
@@ -39,13 +39,13 @@ export function SahaayConversationLayout({
   return (
     <div className="flex min-h-0 flex-1 flex-col text-left">
       {/* Header */}
-      <header className="flex shrink-0 flex-col gap-3 border-b border-border bg-white/80 px-4 py-3 backdrop-blur-sm dark:bg-gray-900/80 md:flex-row md:items-center md:justify-between md:px-6">
+      <header className="flex shrink-0 flex-col gap-3 border-b border-border/80 bg-card/80 px-4 py-3 shadow-sm backdrop-blur-xl md:flex-row md:items-center md:justify-between md:px-6">
         <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-teal-500 text-lg font-bold text-white">
-            S
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-950 text-cyan-300 shadow-md dark:bg-cyan-400 dark:text-slate-950">
+            <Radio size={19} strokeWidth={2.2} />
           </div>
           <div className="flex min-w-0 flex-col justify-center gap-1">
-            <div className="flex items-center gap-2">
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
               <span className="truncate text-lg font-semibold leading-none tracking-tight text-foreground">
                 SahaayAI
               </span>
@@ -64,13 +64,13 @@ export function SahaayConversationLayout({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 md:pr-1">
+        <div className="flex flex-wrap items-center gap-2 md:justify-end md:pr-1">
           {statusPanel}
           {!isEscalated && (
             <Button
               variant="outline"
               size="sm"
-              className="h-8 rounded-md border-amber-300 px-3 text-xs font-medium text-amber-700 hover:bg-amber-50 dark:border-amber-700 dark:text-amber-400 dark:hover:bg-amber-950"
+              className="h-9 rounded-md border-amber-300 px-3 text-xs font-medium text-amber-700 hover:bg-amber-50 dark:border-amber-700 dark:text-amber-400 dark:hover:bg-amber-950"
               onClick={onManualEscalate}
               title="Transfer to human agent"
             >
@@ -81,7 +81,7 @@ export function SahaayConversationLayout({
           <Button
             variant="destructive"
             size="sm"
-            className="h-8 rounded-md border border-destructive bg-transparent px-3 text-xs font-medium text-destructive hover:bg-destructive/10"
+            className="h-9 rounded-md border border-destructive bg-transparent px-3 text-xs font-medium text-destructive hover:bg-destructive/10"
             onClick={onEndConversation}
             aria-label="End conversation"
             title="End conversation"
@@ -93,30 +93,31 @@ export function SahaayConversationLayout({
       </header>
 
       {/* Main Content */}
-      <div className="flex min-h-0 w-full flex-1 flex-col gap-4 px-4 pb-4 pt-4 md:px-6 lg:flex-row lg:gap-0">
+      <div className="flex min-h-0 w-full flex-1 flex-col gap-3 px-3 pb-3 pt-3 md:gap-4 md:px-6 md:pb-5 md:pt-5 lg:flex-row lg:gap-0">
         {/* Left: Transcript */}
-        <aside className="order-2 h-64 min-h-0 w-full shrink-0 lg:order-1 lg:h-full lg:w-[22rem]">
+        <aside className="order-2 h-64 min-h-0 w-full shrink-0 lg:order-1 lg:h-full lg:w-[22rem] lg:pr-5">
           {transcriptPanel}
         </aside>
 
         {/* Center: Visualizer + Controls */}
-        <main className="order-1 flex min-h-0 flex-1 flex-col lg:order-2 lg:border-l lg:border-border/80 lg:pl-6">
+        <main className="order-1 flex min-h-0 flex-1 flex-col lg:order-2 lg:border-l lg:border-border/80 lg:pl-5">
           {escalationPanel ? (
             <div className="flex min-h-0 flex-1 flex-col pb-2 pt-3 md:pb-6">
               {escalationPanel}
             </div>
           ) : (
-            <div className="flex min-h-0 flex-1 flex-col pb-2 pt-3 md:pb-6">
-              <div className="flex min-h-0 flex-1 items-center justify-center">
+            <div className="flex min-h-0 flex-1 flex-col pb-2 pt-2 md:pb-5 md:pt-3">
+              <div className="voice-stage relative flex min-h-[20rem] min-w-0 flex-1 items-center justify-center overflow-hidden rounded-2xl border border-border/70 bg-card/30 px-4 py-8">
+                <div className="pointer-events-none absolute inset-0 opacity-70" aria-hidden="true" />
                 {visualizer}
               </div>
-              <div className="shrink-0 pt-4">{controls}</div>
+              <div className="shrink-0 pt-4 md:pt-5">{controls}</div>
             </div>
           )}
         </main>
 
         {/* Right: Slot Filling Card */}
-        <aside className="order-3 h-64 min-h-0 w-full shrink-0 lg:h-full lg:w-[20rem] lg:border-l lg:border-border/80 lg:pl-4">
+        <aside className="order-3 h-64 min-h-0 w-full shrink-0 lg:h-full lg:w-[20rem] lg:border-l lg:border-border/80 lg:pl-5">
           {slotFillingCard}
         </aside>
       </div>

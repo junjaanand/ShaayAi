@@ -45,13 +45,16 @@ export function QuickstartTranscriptPanel({
 
   return (
     <section
-      className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-2xl border border-border bg-card/20"
+      className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-2xl border border-border/80 bg-card/45 shadow-sm"
       aria-label="Transcription panel"
     >
       <div className="flex h-14 shrink-0 items-center justify-between border-b border-border px-4">
         <div>
-          <h2 className="text-sm font-semibold text-foreground">Transcript</h2>
-          <p className="text-xs text-muted-foreground">Live voice turns</p>
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_0_3px_hsl(150_60%_45%/0.14)]" aria-hidden="true" />
+            <h2 className="text-sm font-semibold text-foreground">Live transcript</h2>
+          </div>
+          <p className="mt-0.5 text-xs text-muted-foreground">Your conversation appears here</p>
         </div>
       </div>
 
@@ -80,10 +83,10 @@ export function QuickstartTranscriptPanel({
                   {time && <span className="font-normal">{time}</span>}
                 </div>
                 <div
-                  className={`max-w-full whitespace-pre-wrap rounded-xl border px-3 py-2 text-sm leading-6 ${
+                  className={`max-w-[92%] whitespace-pre-wrap rounded-2xl border px-3.5 py-2.5 text-sm leading-6 shadow-sm ${
                     isAgent
-                      ? 'border-[#2f2f2f] bg-[#212121] text-[#e7e7e7]'
-                      : 'border-[#d7d7d7] bg-[#fdfcfb] text-black'
+                      ? 'rounded-tl-md border-border bg-muted text-foreground'
+                      : 'rounded-tr-md border-primary/20 bg-primary/10 text-foreground'
                   }`}
                 >
                   {text || '...'}

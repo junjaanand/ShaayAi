@@ -1,13 +1,14 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Headphones, Inbox, ChevronDown, ChevronUp, AlertCircle, Clock } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Headphones, Inbox, ChevronDown, ChevronUp, AlertCircle, Clock, Search, RefreshCw, Activity } from 'lucide-react';
 
 interface Ticket {
   id: string;
   priority: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
-  status: string;
+  status: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
   createdAt: string;
+  updatedAt: string;
   escalationReason: string;
   conversationSummary: string;
   confirmedDetails: Record<string, string>;
@@ -24,15 +25,25 @@ const PRIORITY_COLORS = {
   LOW: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800',
 };
 
+const STATUS_COLORS = {
+  OPEN: 'bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-950/30 dark:text-cyan-300 dark:border-cyan-900',
+  IN_PROGRESS: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-300 dark:border-blue-900',
+  RESOLVED: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-300 dark:border-emerald-900',
+  CLOSED: 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700',
+};
+
 export function SupportAgentView() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | Ticket['status']>('ALL');
 
-  useEffect(() => {
-    const fetchTickets = async () => {
+  const fetchTickets = useCallback(async (manual = false) => {
+      if (manual) setIsRefreshing(true);
       try {
-        const res = await fetch('/api/get-tickets');
+        const res = await fetch('/api/get-tickets', { cache: 'no-store' });
         if (res.ok) {
           const data = await res.json();
           const rawTickets = data.tickets || [];
@@ -43,8 +54,9 @@ export function SupportAgentView() {
             return {
               id: String(t.ticketId || t.id || ''),
               priority: (t.priority as Ticket['priority']) || 'MEDIUM',
-              status: String(t.status || 'OPEN'),
+              status: (t.status as Ticket['status']) || 'OPEN',
               createdAt: typeof createdAt === 'number' ? new Date(createdAt).toISOString() : String(createdAt || new Date().toISOString()),
+              updatedAt: typeof t.updatedAt === 'number' ? new Date(t.updatedAt).toISOString() : String(t.updatedAt || createdAt || new Date().toISOString()),
               escalationReason: String(pkg.escalationReason || t.escalationReason || 'Human review required'),
               conversationSummary: String(pkg.conversationSummary || t.conversationSummary || 'No summary available'),
               confirmedDetails: (pkg.confirmedDetails || t.confirmedDetails || {}) as Record<string, string>,
@@ -60,43 +72,99 @@ export function SupportAgentView() {
         console.error('Failed to fetch tickets:', err);
       } finally {
         setIsLoading(false);
+        setIsRefreshing(false);
       }
-    };
+    }, []);
 
-    fetchTickets();
-    const interval = setInterval(fetchTickets, 5000);
+  useEffect(() => {
+    void fetchTickets();
+    const interval = setInterval(() => void fetchTickets(), 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchTickets]);
 
   const toggleTicket = (id: string) => {
     setSelectedTicketId(prev => prev === id ? null : id);
   };
 
+  const filteredTickets = tickets.filter((ticket) => {
+    const query = searchQuery.trim().toLowerCase();
+    const matchesStatus = statusFilter === 'ALL' || ticket.status === statusFilter;
+    const matchesQuery = !query || [ticket.id, ticket.escalationReason, ticket.conversationSummary, ticket.callerLanguageContext]
+      .some((value) => value.toLowerCase().includes(query));
+    return matchesStatus && matchesQuery;
+  });
+  const openCount = tickets.filter((ticket) => ticket.status === 'OPEN').length;
+  const activeCount = tickets.filter((ticket) => ticket.status === 'IN_PROGRESS').length;
+  const urgentCount = tickets.filter((ticket) => ticket.priority === 'CRITICAL' || ticket.priority === 'HIGH').length;
+
   return (
-    <div className="w-full max-w-5xl mx-auto p-6 space-y-6">
-      <div className="flex items-center space-x-3 pb-4 border-b border-gray-200 dark:border-gray-700">
-        <div className="bg-blue-600 text-white p-2 rounded-lg">
-          <Headphones size={24} />
+    <div className="mx-auto w-full max-w-6xl space-y-6 px-4 py-6 md:px-6 md:py-8">
+      <div className="flex flex-col gap-5 border-b border-slate-200/80 pb-6 dark:border-slate-800 md:flex-row md:items-end md:justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-950 text-cyan-300 shadow-lg dark:bg-cyan-400 dark:text-slate-950">
+            <Headphones size={22} />
+          </div>
+          <div>
+            <div className="mb-1 flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-emerald-500" />
+              <span className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600 dark:text-emerald-400">Live queue</span>
+            </div>
+            <h1 className="text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">Support operations</h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400">Review escalations and keep callers moving.</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Support Agent Dashboard</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Live view of escalated tickets</p>
-        </div>
+        <button type="button" onClick={() => void fetchTickets(true)} disabled={isRefreshing} className="inline-flex h-9 items-center justify-center gap-2 self-start rounded-md border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-950 disabled:cursor-wait disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:text-white md:self-auto">
+          <RefreshCw size={14} className={isRefreshing ? 'animate-spin' : ''} />
+          Refresh queue
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        {[
+          { label: 'Total cases', value: tickets.length, icon: Inbox, tone: 'text-slate-600 dark:text-slate-300' },
+          { label: 'Waiting', value: openCount, icon: Activity, tone: 'text-cyan-600 dark:text-cyan-300' },
+          { label: 'In progress', value: activeCount, icon: Clock, tone: 'text-blue-600 dark:text-blue-300' },
+          { label: 'Priority cases', value: urgentCount, icon: AlertCircle, tone: 'text-amber-600 dark:text-amber-300' },
+        ].map(({ label, value, icon: Icon, tone }) => (
+          <div key={label} className="rounded-lg border border-slate-200/80 bg-white/80 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900/70">
+            <div className={`mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide ${tone}`}><Icon size={15} />{label}</div>
+            <div className="text-2xl font-semibold text-slate-950 dark:text-white">{value}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex flex-col gap-3 md:flex-row">
+        <label className="relative flex-1">
+          <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search ticket, reason, or language" className="h-10 w-full rounded-md border border-slate-200 bg-white pl-9 pr-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/15 dark:border-slate-700 dark:bg-slate-900 dark:text-white" />
+        </label>
+        <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)} className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus:border-cyan-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
+          <option value="ALL">All statuses</option>
+          <option value="OPEN">Open</option>
+          <option value="IN_PROGRESS">In progress</option>
+          <option value="RESOLVED">Resolved</option>
+          <option value="CLOSED">Closed</option>
+        </select>
+      </div>
+
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-slate-950 dark:text-white">Escalated cases</h2>
+        <span className="text-xs text-slate-500 dark:text-slate-400">{filteredTickets.length} shown</span>
       </div>
 
       {isLoading && tickets.length === 0 ? (
-        <div className="flex justify-center p-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="flex justify-center rounded-lg border border-slate-200 bg-white p-12 dark:border-slate-800 dark:bg-slate-900">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-cyan-200 border-t-cyan-600" />
         </div>
-      ) : tickets.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-gray-500 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-dashed border-gray-300 dark:border-gray-700">
+      ) : filteredTickets.length === 0 ? (
+        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-white/60 py-16 text-slate-500 dark:border-slate-700 dark:bg-slate-900/50">
           <Inbox size={48} className="text-gray-400 mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white">No escalated tickets yet</h3>
-          <p className="text-sm">New escalations will appear here automatically.</p>
+          <h3 className="text-lg font-medium text-slate-900 dark:text-white">{tickets.length === 0 ? 'No escalated tickets yet' : 'No matching cases'}</h3>
+          <p className="text-sm">{tickets.length === 0 ? 'New escalations will appear here automatically.' : 'Try changing the search or status filter.'}</p>
         </div>
       ) : (
         <div className="space-y-4">
-          {tickets.map(ticket => {
+          {filteredTickets.map(ticket => {
             const isExpanded = selectedTicketId === ticket.id;
             return (
               <div key={ticket.id} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden transition-all duration-200 hover:border-blue-300 dark:hover:border-blue-700">
@@ -112,7 +180,7 @@ export function SupportAgentView() {
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium border ${PRIORITY_COLORS[ticket.priority]}`}>
                         {ticket.priority}
                       </span>
-                      <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-gray-100 text-gray-700 border border-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium border ${STATUS_COLORS[ticket.status]}`}>
                         {ticket.status}
                       </span>
                     </div>
