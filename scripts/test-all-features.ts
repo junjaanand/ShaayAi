@@ -1,6 +1,7 @@
 import {
   createInitialState,
   parseAgentResponse,
+  parseFullConversation,
   extractDisplayText,
   getFilledSlotCount,
   getMissingSlots,
@@ -200,6 +201,38 @@ async function runTests() {
   assert(stateLegacy.slots.urgency_level.value === 'high', 'Legacy marker fallback still works');
   const cleanLegacy = extractDisplayText(legacyText);
   assert(!cleanLegacy.includes('[SLOT'), 'Legacy markers stripped from display text');
+
+  // 13. Full Conversation with Spoken Numbers & Confirmation Test
+  console.log('\n--- Testing Full Spoken Conversation with Word Numbers & Affirmations ---');
+  const simulatedTranscript = [
+    { uid: '123456', text: "I understand. May I have your name, please?" },
+    { uid: '0', text: "My name is Varun." },
+    { uid: '123456', text: "Thank you, Varun. What specific issue are you facing with your electricity bill?" },
+    { uid: '0', text: "The electricity is suddenly highermuch higher than the previous month." },
+    { uid: '123456', text: "I see. So, you are facing an issue with a sudden increase in your electricity bill. Can you please provide your phone number for follow-up?" },
+    { uid: '0', text: "Yes. Right. It my phone number isnine two seven three one four" },
+    { uid: '123456', text: "It seems I didn't catch the full number. Could you please repeat your phone number?" },
+    { uid: '0', text: "three fiveeight two" },
+    { uid: '123456', text: "Thank you for that. So, your phone number is nine two seven three one four three five eight two. Is that correct?" },
+    { uid: '0', text: "Yes. Correct." },
+  ];
+
+  const fullState = parseFullConversation(simulatedTranscript, '0', createInitialState());
+  assert(fullState.slots.caller_name.value === 'Varun', 'Full transcript extracted caller_name = Varun');
+  assert(fullState.slots.caller_name.confirmed === true, 'caller_name is confirmed on caller yes/correct');
+  assert(fullState.slots.issue_category.value === 'billing', 'Full transcript extracted issue_category = billing');
+  assert(Boolean(fullState.slots.issue_description.value), 'Full transcript extracted issue_description');
+  assert(fullState.slots.contact_number.value === '9273143582', 'Spoken word phone number normalized to 9273143582');
+  assert(fullState.slots.contact_number.confirmed === true, 'contact_number is confirmed');
+  assert(fullState.slots.urgency_level.value === 'high', 'Extracted urgency from sudden increase / higher bill');
+
+  const pkg = buildEscalationPackage(fullState, simulatedTranscript.map(t => t.text));
+  assert(Boolean(pkg.confirmedDetails.caller_name), 'Escalation package includes confirmed caller_name');
+  assert(Boolean(pkg.confirmedDetails.contact_number), 'Escalation package includes confirmed contact_number');
+  assert(Boolean(pkg.confirmedDetails.issue_description), 'Escalation package includes confirmed issue_description');
+  assert(!pkg.missingDetails.includes('caller_name'), 'caller_name is NOT in missingDetails');
+  assert(!pkg.missingDetails.includes('contact_number'), 'contact_number is NOT in missingDetails');
+  assert(!pkg.missingDetails.includes('issue_description'), 'issue_description is NOT in missingDetails');
 
   console.log('\n🎉 ALL FEATURE TESTS PASSED SUCCESSFULLY! 100% HEALTHY.\n');
 }

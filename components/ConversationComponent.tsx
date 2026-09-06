@@ -33,7 +33,7 @@ import {
 } from '@/lib/conversation';
 import {
   createInitialState,
-  parseAgentResponse,
+  parseFullConversation,
   extractDisplayText,
   shouldEscalate,
   type ConversationState,
@@ -151,28 +151,17 @@ export default function ConversationComponent({
     });
   }, []);
 
-  // SahaayAI: Process transcript updates to track conversation state
+  // SahaayAI: Process transcript updates across both caller and agent to track conversation state
   useEffect(() => {
     if (rawTranscript.length === 0) return;
 
-    // Get the latest agent message to parse for state markers
-    const agentMessages = rawTranscript.filter(
-      (t) => t.uid !== '0' && t.uid !== String(client.uid),
-    );
-    if (agentMessages.length === 0) return;
-
-    const latestAgent = agentMessages[agentMessages.length - 1];
-    if (latestAgent?.text) {
-      setConversationState((prev) => {
-        const textStr = typeof latestAgent.text === 'string' ? latestAgent.text : '';
-        const updated = parseAgentResponse(textStr, prev);
-        // Count user turns
-        const userTurns = rawTranscript.filter(
-          (t) => t.uid === '0' || t.uid === String(client.uid),
-        );
-        return { ...updated, turnCount: userTurns.length };
-      });
-    }
+    setConversationState((prev) => {
+      const updated = parseFullConversation(rawTranscript, String(client.uid), prev);
+      const userTurns = rawTranscript.filter(
+        (t) => t.uid === '0' || t.uid === String(client.uid),
+      );
+      return { ...updated, turnCount: userTurns.length };
+    });
   }, [rawTranscript, client.uid]);
 
   // SahaayAI: Auto-escalation when confidence is critically low
