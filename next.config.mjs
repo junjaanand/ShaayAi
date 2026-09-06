@@ -9,6 +9,7 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  transpilePackages: ['agora-agent-uikit'],
   turbopack: {
     root: rootDir,
   },
