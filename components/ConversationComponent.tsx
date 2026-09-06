@@ -294,15 +294,23 @@ export default function ConversationComponent({
     if (micError) {
       addConnectionIssue({
         id: `mic-error-${Date.now()}`,
-        source: 'agent',
-        agentUserId: agentUID,
+        source: 'microphone',
+        agentUserId: 'local-mic',
         code: (micError as { code?: string })?.code || 'DEVICE_NOT_FOUND',
         message:
-          'No microphone detected. Please plug in a microphone or allow microphone permissions in browser settings.',
+          'No microphone detected or permission denied. Please plug in a microphone or allow microphone permissions in browser settings.',
         timestamp: Date.now(),
       });
     }
-  }, [micError, agentUID, addConnectionIssue]);
+  }, [micError, addConnectionIssue]);
+
+  useEffect(() => {
+    if (localMicrophoneTrack) {
+      setConnectionIssues((prev) =>
+        prev.filter((i) => i.source !== 'microphone' && i.code !== 'DEVICE_NOT_FOUND'),
+      );
+    }
+  }, [localMicrophoneTrack]);
 
   // ENABLE_AUDIO_PTS is a module-level SDK parameter (not on the client instance).
   // It must be set before publishing audio for transcript timing to be accurate.
@@ -649,24 +657,31 @@ export default function ConversationComponent({
         </div>
       }
       controls={
-        <div
-          className="mx-auto flex w-fit items-center gap-3 rounded-full border border-border bg-card/80 px-4 py-2 backdrop-blur-md"
-          role="group"
-          aria-label="Audio controls"
-        >
-          <div className="conversation-mic-host flex items-center justify-center">
-            <MicButtonWithVisualizer
-              isEnabled={isEnabled}
-              setIsEnabled={setIsEnabled}
-              track={localMicrophoneTrack}
-              onToggle={handleMicToggle}
-              className="overflow-visible"
-              aria-label={isEnabled ? 'Mute microphone' : 'Unmute microphone'}
-              enabledColor="hsl(var(--primary))"
-              disabledColor="hsl(var(--destructive))"
-            />
+        <div className="flex flex-col items-center gap-2">
+          {micError && (
+            <div className="flex items-center gap-2 rounded-full bg-amber-500/10 border border-amber-500/30 px-4 py-1.5 text-xs text-amber-600 dark:text-amber-400 font-medium shadow-sm animate-pulse">
+              <span>🎙️ Microphone not detected. Check browser permissions or connect a headset/mic.</span>
+            </div>
+          )}
+          <div
+            className="mx-auto flex w-fit items-center gap-3 rounded-full border border-border bg-card/80 px-4 py-2 backdrop-blur-md"
+            role="group"
+            aria-label="Audio controls"
+          >
+            <div className="conversation-mic-host flex items-center justify-center">
+              <MicButtonWithVisualizer
+                isEnabled={isEnabled && !micError}
+                setIsEnabled={setIsEnabled}
+                track={localMicrophoneTrack}
+                onToggle={handleMicToggle}
+                className="overflow-visible"
+                aria-label={isEnabled ? 'Mute microphone' : 'Unmute microphone'}
+                enabledColor="hsl(var(--primary))"
+                disabledColor="hsl(var(--destructive))"
+              />
+            </div>
+            <MicrophoneSelector localMicrophoneTrack={localMicrophoneTrack} />
           </div>
-          <MicrophoneSelector localMicrophoneTrack={localMicrophoneTrack} />
         </div>
       }
       slotFillingCard={

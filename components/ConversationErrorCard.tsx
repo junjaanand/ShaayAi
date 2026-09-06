@@ -2,7 +2,7 @@ import React from 'react';
 
 export type ConnectionIssue = {
   id: string;
-  source: 'rtm' | 'agent' | 'rtm-signaling';
+  source: 'rtm' | 'agent' | 'rtm-signaling' | 'microphone';
   agentUserId: string;
   code: string | number;
   message: string;
@@ -107,27 +107,35 @@ type ConversationErrorCardProps = {
 };
 
 export function ConversationErrorCard({ issue }: ConversationErrorCardProps) {
-  const normalizedMessage = getNormalizedMessage(issue);
+  const isMic =
+    issue.source === 'microphone' ||
+    String(issue.code).includes('DEVICE_NOT_FOUND') ||
+    String(issue.code).includes('PERMISSION_DENIED') ||
+    String(issue.code).includes('NOT_READABLE');
+
+  const normalizedMessage = isMic
+    ? 'No active microphone was detected, or microphone permission was not granted by your browser. Please plug in a microphone/headset and click "Allow" on the microphone prompt.'
+    : getNormalizedMessage(issue);
   const showNormalizedMessage = normalizedMessage !== issue.message;
-  const cta = getCta(issue);
+  const cta = isMic ? 'Check browser address bar 🔒 permissions & audio input' : getCta(issue);
   const transportCode = String(issue.code);
-  const showRaw = issue.message !== normalizedMessage;
+  const showRaw = !isMic && issue.message !== normalizedMessage;
 
   return (
     // Compact diagnostic card: headline for quick triage, optional CTA, raw payload for deeper debugging.
-    <div className="rounded border border-destructive/30 bg-destructive/10 px-2 py-1.5 text-xs">
+    <div className="rounded border border-destructive/30 bg-destructive/10 px-2.5 py-2 text-xs">
       <div className="font-medium text-destructive">
-        Conversation AI Engine Error: {transportCode}
+        {isMic ? `Microphone Issue: ${transportCode}` : `Conversation AI Engine Error: ${transportCode}`}
       </div>
-      {showNormalizedMessage && <div className="text-foreground">{normalizedMessage}</div>}
-      {cta && <div className="text-[11px] text-destructive/90">{cta}</div>}
+      {showNormalizedMessage && <div className="mt-1 text-foreground">{normalizedMessage}</div>}
+      {cta && <div className="mt-1 text-[11px] font-medium text-amber-500">{cta}</div>}
       {showRaw && (
         <div className="mt-2 border-t border-destructive/20 pt-2 text-muted-foreground break-words">
           {issue.message}
         </div>
       )}
-      <div className="text-muted-foreground">
-        agent {issue.agentUserId} at {new Date(issue.timestamp).toLocaleTimeString()}
+      <div className="mt-1 text-[11px] text-muted-foreground">
+        {isMic ? 'Your Browser Audio Input' : `agent ${issue.agentUserId}`} at {new Date(issue.timestamp).toLocaleTimeString()}
       </div>
     </div>
   );
